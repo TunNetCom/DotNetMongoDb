@@ -1,11 +1,17 @@
 using MongoDb;
 using MongoDb.Services;
 using MongoDb.Settings;
+using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.Configure<MongoSettings>(builder.Configuration.GetSection("MongoDbConnection"));
-builder.Services.AddSingleton<MongoDbContext>();
+
+var mongoSettings = builder.Configuration.GetSection("MongoDbConnection").Get<MongoSettings>();
+builder.Services.AddDbContext<MongoDbContext>(options =>
+    options.UseMongoDB(mongoSettings.ConnectionString, mongoSettings.DatabaseName)
+);
+
 builder.Services.AddScoped<UserService>();
 
 builder.Services.AddControllers();

@@ -1,7 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using MongoDb.Entity;
 using MongoDb.Services;
-using MongoDB.Bson;
 
 namespace MongoDb.Controllers;
 
@@ -22,6 +21,7 @@ public class UsersController : ControllerBase
         var users = await _userService.GetAllUsersAsync();
         return Ok(users);
     }
+
     [HttpPost]
     public async Task<IActionResult> CreateUser([FromBody] User user)
     {

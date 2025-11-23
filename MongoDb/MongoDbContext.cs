@@ -1,24 +1,32 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using MongoDb.Entity;
-using MongoDb.Settings;
-using MongoDB.Driver;
-using Microsoft.Extensions.Options;
+using MongoDB.EntityFrameworkCore;
+using MongoDB.EntityFrameworkCore.Extensions;
 
 namespace MongoDb;
 
-
-public class MongoDbContext
+public class MongoDbContext : DbContext
 {
-    private readonly IMongoDatabase _database;
-
-    public MongoDbContext(IOptions<MongoSettings> options)
+    public MongoDbContext(DbContextOptions<MongoDbContext> options) : base(options)
     {
-        var settings = options.Value;
-        var client = new MongoClient(settings.ConnectionString);
-        _database = client.GetDatabase(settings.DatabaseName);
     }
 
-    public IMongoCollection<User> Users => _database.GetCollection<User>("Users");
+    public DbSet<User> Users { get; set; }
+
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    {
+        base.OnModelCreating(modelBuilder);
+
+        _ = modelBuilder.Entity<User>().ToCollection("Users");
+        _ = modelBuilder.Entity<User>().HasKey(u => u.Id);
+        _ = modelBuilder.Entity<User>()
+            .Property(u => u.Id)
+            .ValueGeneratedOnAdd()
+            .HasDefaultValue(0);
+    }
 }
+
+
+
 
 

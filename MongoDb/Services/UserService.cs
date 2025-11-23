@@ -1,62 +1,76 @@
-﻿using MongoDb.Entity;
-using MongoDB.Bson;
-using MongoDB.Driver;
+using Microsoft.EntityFrameworkCore;
+using MongoDb.Entity;
 
 namespace MongoDb.Services;
 
 public class UserService
 {
-    private readonly IMongoCollection<User> _userCollection;
+    private readonly MongoDbContext _context;
 
     public UserService(MongoDbContext context)
     {
-        _userCollection = context.Users;
+        _context = context;
     }
 
     public async Task<List<User>> GetAllUsersAsync()
     {
-        return await _userCollection.Find(_ => true).ToListAsync();
+        return await _context.Users.ToListAsync();
     }
 
     public async Task CreateUserAsync(User user)
     {
-        await _userCollection.InsertOneAsync(user);
+        _ = _context.Users.Add(user);
+        _ = await _context.SaveChangesAsync();
     }
 
     public async Task UpdateUserAsync(int userId, User user)
     {
-        var filter = Builders<User>.Filter.Eq(u => u.Id, userId);
-        var update = Builders<User>.Update
-            .Set(u => u.Name, user.Name)
-            .Set(u => u.Birthdate, user.Birthdate)
-            .Set(u => u.Addresses, user.Addresses);
+        var existingUser = await _context.Users.FirstOrDefaultAsync(u => u.Id == userId);
+        if (existingUser != null)
+        {
+            existingUser.UpdateUser(
+                name: user.Name,
+                lastName: user.LastName,
+                birthDate: user.Birthdate);
 
-        _=await _userCollection.UpdateOneAsync(filter, update);
+            _ = _context.Users.Update(existingUser);
+            _ = await _context.SaveChangesAsync();
+        }
     }
 
     public async Task AddAddressToUserAsync(int userId, Address address)
     {
-        var filter = Builders<User>.Filter.Eq(u => u.Id, userId);
-        var update = Builders<User>.Update.AddToSet(u => u.Addresses, address);
-
-        _ = await _userCollection.UpdateOneAsync(filter, update);
+        var user = await _context.Users.FirstOrDefaultAsync(u => u.Id == userId);
+        if (user != null)
+        {
+            user.Addresses.Add(address);
+            _ = _context.Users.Update(user);
+            _ = await _context.SaveChangesAsync();
+        }
     }
 
     public async Task RemoveAddressFromUserAsync(int userId, int AddressId)
     {
-        var filter = Builders<User>.Filter.Eq(u => u.Id, userId);
-        var addressFilter = Builders<User>.Filter.Eq("Addresses.Id", AddressId);
-        var combinedFilter = Builders<User>.Filter.And(filter, addressFilter);
-
-        var update = Builders<User>.Update.PullFilter(u => u.Addresses, Builders<Address>.Filter.Eq(a => a.Id, AddressId));
-
-        _ = await _userCollection.UpdateOneAsync(combinedFilter, update);
+        var user = await _context.Users.FirstOrDefaultAsync(u => u.Id == userId);
+        if (user != null)
+        {
+            var addressToRemove = user.Addresses.FirstOrDefault(a => a.Id == AddressId);
+            if (addressToRemove != null)
+            {
+                _ = user.Addresses.Remove(addressToRemove);
+                _ = _context.Users.Update(user);
+                _ = await _context.SaveChangesAsync();
+            }
+        }
     }
 
     public async Task DeleteUserAsync(int userId)
     {
-        var filter = Builders<User>.Filter.Eq(u => u.Id, userId);
-        _ = await _userCollection.DeleteOneAsync(filter);
+        var user = await _context.Users.FirstOrDefaultAsync(u => u.Id == userId);
+        if (user != null)
+        {
+            _ = _context.Users.Remove(user);
+            _ = await _context.SaveChangesAsync();
+        }
     }
 }
-
