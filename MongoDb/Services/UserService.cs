@@ -19,6 +19,12 @@ public class UserService
 
     public async Task CreateUserAsync(User user)
     {
+        if (user.Id == 0)
+        {
+            var users = await _context.Users.ToListAsync();
+            user.Id = users.Count == 0 ? 1 : users.Max(u => u.Id) + 1;
+        }
+
         _ = _context.Users.Add(user);
         _ = await _context.SaveChangesAsync();
     }

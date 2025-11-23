@@ -19,10 +19,6 @@ public class MongoDbContext : DbContext
 
         _ = modelBuilder.Entity<User>().ToCollection("Users");
         _ = modelBuilder.Entity<User>().HasKey(u => u.Id);
-        _ = modelBuilder.Entity<User>()
-            .Property(u => u.Id)
-            .ValueGeneratedOnAdd()
-            .HasDefaultValue(0);
     }
 }
 
